@@ -1,21 +1,31 @@
-var trex, trex_running, edges;
+var trex, trex_running, edges, trexMortin;
 var groundImage, ground, groundInvisible;
-var Nuvenzinha, nuvemImage, nuvenzinhaGroup
-var cacto, cacto1, cacto2, cacto3, cacto4, cacto5, cacto6, cactoGroup
-var PLAY = 1
-var FIM = 0
-var gameState = PLAY
+var Nuvenzinha, nuvemImage, nuvenzinhaGroup;
+var cacto, cacto1, cacto2, cacto3, cacto4, cacto5, cacto6, cactoGroup;
+var PLAY = 1;
+var FIM = 0;
+var gameState = PLAY;
+var gameOver, gameOverImg;
+var restart, restartImg;
+var jumpSound, checkpointSound, dieSound;
+var score = 0;
 
 function preload(){
   trex_running = loadAnimation("trex1.png","trex3.png","trex4.png");
-  groundImage = loadImage("ground2.png")
-  nuvemImage = loadImage("cloud.png")
-  cacto1 = loadImage("obstacle1.png")
-  cacto2 = loadImage("obstacle2.png")
-  cacto3 = loadImage("obstacle3.png")
-  cacto4 = loadImage("obstacle4.png")
-  cacto5 = loadImage("obstacle5.png")
-  cacto6 = loadImage("obstacle6.png")
+  trexMortin = loadAnimation("trex_collided.png");
+  groundImage = loadImage("ground2.png");
+  nuvemImage = loadImage("cloud.png");
+  gameOverImg = loadImage("gameOver.png")
+  restartImg = loadImage ("restart.png")
+  jumpSound = loadSound ("C16-Adicionar_jump.mp3")
+  dieSound = loadSound ("C16-Adicionar_die.mp3")
+  checkpointSound = loadSound ("C16-Adicionar_checkPoint.mp3")
+  cacto1 = loadImage("obstacle1.png");
+  cacto2 = loadImage("obstacle2.png");
+  cacto3 = loadImage("obstacle3.png");
+  cacto4 = loadImage("obstacle4.png");
+  cacto5 = loadImage("obstacle5.png");
+  cacto6 = loadImage("obstacle6.png");
 }
 
 function setup(){
@@ -24,6 +34,7 @@ function setup(){
   //criando o trex
   trex = createSprite(50,160,20,50);
   trex.addAnimation("running", trex_running);
+  trex.addAnimation("dead", trexMortin)
   edges = createEdgeSprites();
   
   //adicione dimensão e posição ao trex
@@ -38,18 +49,42 @@ function setup(){
  groundInvisible = createSprite(200, 190, 400, 10)
  groundInvisible.visible = false
 
+ //imagem do game over
+gameOver = createSprite(300, 100)
+gameOver.addImage(gameOverImg)
+gameOver.scale = 0.5
+gameOver.visible = false
+
+//imagem do restart
+restart = createSprite(300, 140)
+restart.addImage(restartImg)
+restart.scale = 0.5
+restart.visible = false
+
  //criar grupo
  cactoGroup = new Group();
  nuvenzinhaGroup = new Group();
+ 
+ trex.setCollider("circle", 0, 0, 40); 
 }
 
 
 function draw(){
   //definir a cor do plano de fundo 
   background("white");
+
+  text("pontos: " + score, 500, 50)
   
   if (gameState == PLAY) {
+    
+     //pontuação
+     score = score + Math.round(getFrameRate()/60) 
 
+    if (score > 0 && score%100 == 0) {
+
+      checkpointSound.play()
+      
+    }
       //movimento d chão
       ground.velocityX = -7
       
@@ -61,6 +96,7 @@ function draw(){
       //pular quando tecla de espaço for pressionada
      if(keyDown("space") && trex.y >= 130){
        trex.velocityY = -10;
+       jumpSound.play()
     }
       
      //gravidade do t-rex
@@ -71,9 +107,10 @@ function draw(){
 
     //utilizando a função criar obstaculos e nuvens
   CriarObstaculos();
- 
+  
     if (cactoGroup.isTouching(trex)){
-
+      
+      dieSound.play()
       gameState = FIM;
     }
     }
@@ -81,10 +118,25 @@ function draw(){
   
   else if (gameState == FIM){
    
+    gameOver.visible = true
+    restart.visible = true
     ground.velocityX = 0
+    
+    cactoGroup.setLifetimeEach(-1)
+    nuvenzinhaGroup.setLifetimeEach(-1)
 
+    trex.VelocityY = 0
+
+    //mudar animação
+    trex.changeAnimation("dead", trexMortin)
+
+   //definir tempo de vida pra nunca serem destruidos
     cactoGroup.setVelocityXEach(0)
     nuvenzinhaGroup.setVelocityXEach(0)
+
+    if (mousePressedOver(restart)) {
+      reset()
+    }
   }
 
  //impedir que o trex caia
@@ -149,4 +201,14 @@ function CriarObstaculos() {
 
   cacto.lifetime = 300
   }
+}
+
+function reset() {
+  gameState = PLAY 
+  gameOver.visible = false
+  restart.visible = false
+  cactoGroup.destroyEach()
+  nuvenzinhaGroup.destroyEach()
+  trex.changeAnimation("running", trex_running)
+  score = 0
 }
